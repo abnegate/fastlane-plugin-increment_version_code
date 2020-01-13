@@ -7,14 +7,17 @@ module Fastlane
       def self.run(params)
 
         version_code = "0"
+
         new_version_code ||= params[:version_code]
 
         constant_name ||= params[:ext_constant_name]
 
+        variant ||= params[:app_variant]
+
         gradle_file_path ||= params[:gradle_file_path]
         if gradle_file_path != nil
             UI.message("The increment_version_code plugin will use gradle file at (#{gradle_file_path})!")
-            new_version_code = incrementVersion(gradle_file_path, new_version_code, constant_name)
+            new_version_code = incrementVersion(variant, gradle_file_path, new_version_code, constant_name)
         else
             app_folder_name ||= params[:app_folder_name]
             UI.message("The get_version_code plugin is looking inside your project folder (#{app_folder_name})!")
@@ -23,7 +26,7 @@ module Fastlane
             #foundVersionCode = "false"
             Dir.glob("**/#{app_folder_name}/build.gradle") do |path|
                 UI.message(" -> Found a build.gradle file at path: (#{path})!")
-                new_version_code = incrementVersion(path, new_version_code, constant_name)
+                new_version_code = incrementVersion(variant, path, new_version_code, constant_name)
             end
 
         end
@@ -39,7 +42,7 @@ module Fastlane
         return new_version_code
       end
 
-      def self.incrementVersion(path, new_version_code, constant_name)
+      def self.incrementVersion(variant, path, new_version_code, constant_name)
           if !File.file?(path)
               UI.message(" -> No file exist at path: (#{path})!")
               return -1
@@ -48,9 +51,14 @@ module Fastlane
               foundVersionCode = "false"
               temp_file = Tempfile.new('fastlaneIncrementVersionCode')
               File.open(path, 'r') do |file|
-                  file.each_line do |line|
-                      if line.include? constant_name and foundVersionCode=="false"
-                          UI.message(" -> line: (#{line})!")
+                  in_block = false
+                  file.each_line.lazy.each do |line|
+                      if line.include? /#{variant}.*\{$/ and in_block == false
+                        in_block = true
+                      end
+
+                      if line.include? constant_name and foundVersionCode=="false" and in_block == true
+                        UI.message(" -> line: (#{line})!")
                         versionComponents = line.strip.split(' ')
                         version_code = versionComponents[versionComponents.length-1].tr("\"","")
                         if new_version_code <= 0
@@ -88,6 +96,12 @@ module Fastlane
 
       def self.available_options
           [
+              FastlaneCore::ConfigItem.new(key: :app_variant,
+                                      env_name: "INCREMENTVERSIONCODE_APP_VARIANT",
+                                   description: "The name of the build variant in the Android project (default: nil)",
+                                      optional: true,
+                                          type: String,
+                                 default_value: nil),
               FastlaneCore::ConfigItem.new(key: :app_folder_name,
                                       env_name: "INCREMENTVERSIONCODE_APP_FOLDER_NAME",
                                    description: "The name of the application source folder in the Android project (default: app)",

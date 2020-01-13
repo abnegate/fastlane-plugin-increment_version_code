@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.email         = %q{jeremy.toudic@gmail.com}
 
   spec.summary       = %q{Increment the version code of your android project.}
-  spec.homepage      = "https://github.com/Jems22/fastlane-plugin-increment_version_code"
+  spec.homepage      = "https://github.com/abnegate/fastlane-plugin-increment_version_code"
   spec.license       = "MIT"
 
   spec.files         = Dir["lib/**/*"] + %w(README.md LICENSE)
